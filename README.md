@@ -88,3 +88,6 @@ O executável será gerado na pasta `dist/`.
 ---
 
 Desenvolvido por **Thomaz Arthur**
+Estudante de Análise e Desenvolvimento de Sistemas
+
+🔗: https://www.linkedin.com/in/thomaz-arthur-a2a95b145/
