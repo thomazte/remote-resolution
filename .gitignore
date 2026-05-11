@@ -1,0 +1,12 @@
+# PyInstaller
+build/
+dist/
+*.spec
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Release local (binários grandes — remova esta linha se quiser versionar .exe no Git)
+release/
