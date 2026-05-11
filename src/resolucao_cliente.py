@@ -99,6 +99,16 @@ class App(tk.Tk):
         self.configure(bg=self.BG)
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
+        # Barra de titulo propria (sem barra cinza do Windows); botoes na faixa azul.
+        self._maximized = False
+        self._geom_restore = None
+        self._drag_offset = None
+        self._awaiting_reborderless = False
+        self._map_ignore_once = False
+        self._geom_before_min = None
+        self.overrideredirect(True)
+        self.bind("<Map>", self._on_map_reborderless, add="+")
+
         self.original_res = get_current_resolution()
         self.current_res = self.original_res
         self.supported = get_supported_resolutions()
@@ -120,20 +130,167 @@ class App(tk.Tk):
         elif len(self.supported) <= 2:
             self._status("⚠  Poucas resoluções — driver pode estar desatualizado.", warn=True)
 
-    def _build(self):
-        banner = tk.Frame(self, bg="#0a4ea3")
-        banner.pack(fill="x")
-        tk.Label(
-            banner,
+    def _build_custom_titlebar(self):
+        bg = "#0a4ea3"
+        hover = "#0d5bcf"
+        close_hover = "#b62318"
+
+        bar = tk.Frame(self, bg=bg)
+        bar.pack(fill="x")
+        row = tk.Frame(bar, bg=bg)
+        row.pack(fill="x")
+
+        drag = tk.Frame(row, bg=bg, cursor="fleur")
+        drag.pack(side="left", fill="both", expand=True)
+        title_lbl = tk.Label(
+            drag,
             text="REMOTE SOLUTION",
-            bg="#0a4ea3",
+            bg=bg,
             fg="white",
             font=("Segoe UI", 13, "bold"),
             padx=16,
-            pady=9,
             anchor="w",
-        ).pack(fill="x")
-        tk.Frame(banner, bg="#083d80", height=2).pack(fill="x")
+            cursor="fleur",
+        )
+        title_lbl.pack(side="left", pady=9)
+
+        for w in (drag, title_lbl):
+            w.bind("<ButtonPress-1>", self._title_drag_start)
+            w.bind("<B1-Motion>", self._title_drag_motion)
+            w.bind("<ButtonRelease-1>", self._title_drag_end)
+            w.bind("<Double-Button-1>", lambda e: self._win_toggle_max())
+
+        ctr = tk.Frame(row, bg=bg)
+        ctr.pack(side="right")
+
+        def hdr_btn(text, cmd, close=False):
+            return tk.Button(
+                ctr,
+                text=text,
+                command=cmd,
+                font=("Segoe UI", 11),
+                width=3,
+                height=1,
+                bg=bg,
+                fg="white",
+                relief="flat",
+                bd=0,
+                activebackground=close_hover if close else hover,
+                activeforeground="white",
+                takefocus=0,
+                cursor="hand2",
+                padx=0,
+                pady=6,
+            )
+
+        hdr_btn("\u2212", self._win_minimize).pack(side="left")
+        self._btn_max = hdr_btn("\u25a1", self._win_toggle_max)
+        self._btn_max.pack(side="left")
+        hdr_btn("\u00d7", self.on_close, close=True).pack(side="left")
+
+        tk.Frame(bar, bg="#083d80", height=2).pack(fill="x")
+
+    def _title_drag_start(self, event):
+        if self._maximized:
+            return
+        self._drag_offset = (event.x_root - self.winfo_rootx(), event.y_root - self.winfo_rooty())
+
+    def _title_drag_motion(self, event):
+        if self._drag_offset is None or self._maximized:
+            return
+        x = event.x_root - self._drag_offset[0]
+        y = event.y_root - self._drag_offset[1]
+        self.geometry(f"+{x}+{y}")
+
+    def _title_drag_end(self, event):
+        self._drag_offset = None
+
+    def _on_map_reborderless(self, event):
+        # Apos minimizar: overrideredirect(False) + iconic; ao voltar, borderless + mesma geometria.
+        if not getattr(self, "_awaiting_reborderless", False):
+            return
+        try:
+            st = self.wm_state()
+        except tk.TclError:
+            return
+        if getattr(self, "_map_ignore_once", False) and st == "normal":
+            self._map_ignore_once = False
+            return
+        if st == "iconic":
+            self._map_ignore_once = False
+            return
+        if st in ("normal", "zoomed"):
+            try:
+                self.attributes("-alpha", 0.0)
+            except tk.TclError:
+                pass
+            self.overrideredirect(True)
+            g = getattr(self, "_geom_before_min", None)
+            if g:
+                self.geometry(g)
+            self._geom_before_min = None
+            self.update_idletasks()
+            self._awaiting_reborderless = False
+            self._map_ignore_once = False
+            self.after(12, self._fade_in_after_restore)
+
+    def _fade_in_after_restore(self):
+        try:
+            if not self.winfo_exists():
+                return
+            self.attributes("-alpha", 1.0)
+        except tk.TclError:
+            pass
+
+    def _win_minimize(self):
+        # Com overrideredirect(True), iconify costuma falhar no Windows: decoracao temporaria.
+        # Opacidade 0 evita flash da barra cinza; ao restaurar reaplica-se geometria guardada.
+        self.update_idletasks()
+        self._geom_before_min = self.geometry()
+        self._awaiting_reborderless = True
+        self._map_ignore_once = True
+        try:
+            self.attributes("-alpha", 0.0)
+        except tk.TclError:
+            pass
+        self.overrideredirect(False)
+        self.update_idletasks()
+        try:
+            self.state("iconic")
+        except tk.TclError:
+            try:
+                self.iconify()
+            except tk.TclError:
+                self._awaiting_reborderless = False
+                self._map_ignore_once = False
+                self._geom_before_min = None
+                try:
+                    self.attributes("-alpha", 1.0)
+                except tk.TclError:
+                    pass
+                return
+        try:
+            self.attributes("-alpha", 1.0)
+        except tk.TclError:
+            pass
+
+    def _win_toggle_max(self):
+        self.update_idletasks()
+        if self._maximized:
+            if self._geom_restore:
+                self.geometry(self._geom_restore)
+            self._maximized = False
+            self._btn_max.config(text="\u25a1")
+        else:
+            self._geom_restore = self.geometry()
+            sw = self.winfo_screenwidth()
+            sh = self.winfo_screenheight()
+            self.geometry(f"{sw}x{sh}+0+0")
+            self._maximized = True
+            self._btn_max.config(text="\u2750")
+
+    def _build(self):
+        self._build_custom_titlebar()
 
         info = tk.Frame(self, bg=self.PANEL)
         info.pack(fill="x", padx=14, pady=(12, 0))
@@ -383,6 +540,13 @@ class App(tk.Tk):
         messagebox.showinfo("Driver de Vídeo", f"Informações do adaptador de vídeo:\n\n{driver_info.get_driver_info()}")
 
     def on_close(self):
+        self._awaiting_reborderless = False
+        self._map_ignore_once = False
+        self._geom_before_min = None
+        try:
+            self.attributes("-alpha", 1.0)
+        except tk.TclError:
+            pass
         if self.current_res != self.original_res:
             if messagebox.askyesno(
                 "Restaurar resolução?",
