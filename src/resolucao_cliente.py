@@ -76,7 +76,7 @@ SECOES_RESOLUCAO = [
 ]
 
 AUTOR = "Thomaz Arthur"
-VERSAO = "1.1.1"
+VERSAO = "1.1.2"
 
 # ── GUI ────────────────────────────────────────────────────────────────────────
 class App(tk.Tk):

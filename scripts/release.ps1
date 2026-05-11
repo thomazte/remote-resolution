@@ -43,6 +43,15 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 New-Item -ItemType Directory -Force "release" | Out-Null
+# So fica o build atual: tenta remover executaveis antigos (ignora se estiverem em uso).
+foreach ($f in @(Get-ChildItem -Path "release" -Filter "RemoteResolution*.exe" -ErrorAction SilentlyContinue)) {
+    try {
+        Remove-Item -LiteralPath $f.FullName -Force -ErrorAction Stop
+    } catch {
+        Write-Host "AVISO: nao removeu $($f.Name) (em uso?). Copia a versao nova com outro nome." -ForegroundColor Yellow
+    }
+}
+
 $outVersioned = "release\RemoteResolution-$ver.exe"
 $outLatest = "release\RemoteResolution.exe"
 Copy-Item -Force "dist\RemoteResolution.exe" $outVersioned
