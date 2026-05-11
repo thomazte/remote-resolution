@@ -1,3 +1,2 @@
-# Dependências de build (geração de .exe e utilitário make_ico.py).
+# Dependencia de build (geracao de .exe)
 pyinstaller>=6.0,<7
-pillow>=10.0,<12

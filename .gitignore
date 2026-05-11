@@ -3,6 +3,9 @@ build/
 dist/
 *.spec
 
+# Executável gerado na raiz do projeto (oficial: dist/ ou release/ após o build)
+/*.exe
+
 # Python
 __pycache__/
 *.py[cod]
