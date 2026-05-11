@@ -3,13 +3,43 @@ build/
 dist/
 *.spec
 
-# Executável gerado na raiz do projeto (oficial: dist/ ou release/ após o build)
+# Executável na raiz (oficial: dist/ ou release/ após o build)
 /*.exe
 
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.egg-info/
+.eggs/
+*.egg
 
-# Release local (binários grandes — remova esta linha se quiser versionar .exe no Git)
+# Ambientes virtuais
+.venv/
+venv/
+ENV/
+
+# Ferramentas / testes (se forem usados no futuro)
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Release local (binários grandes — apague esta linha se quiser versionar .exe)
 release/
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDEs e editores
+.idea/
+*.swp
+*~
+
+# Segredos / ambiente local (boas práticas)
+.env
+.env.*
