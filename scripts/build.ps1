@@ -4,6 +4,11 @@ $ErrorActionPreference = "Stop"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Set-Location $RepoRoot
 
+Write-Host "Limpando artefatos locais (build/dist/spec)..." -ForegroundColor Cyan
+Remove-Item -Recurse -Force "build" -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force "dist" -ErrorAction SilentlyContinue
+Remove-Item -Force "RemoteResolution.spec" -ErrorAction SilentlyContinue
+
 py -3 -m pip install -r requirements.txt
 
 $entry = "src\resolucao_cliente.py"

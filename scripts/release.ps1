@@ -22,8 +22,8 @@ if (-not $SkipInstall) {
 }
 
 Write-Host "Limpando artefatos anteriores..." -ForegroundColor Cyan
-Remove-Item -Recurse -Force "build\RemoteResolution" -ErrorAction SilentlyContinue
-Remove-Item -Force "dist\RemoteResolution.exe" -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force "build" -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force "dist" -ErrorAction SilentlyContinue
 Remove-Item -Force "RemoteResolution.spec" -ErrorAction SilentlyContinue
 
 $entry = "src\resolucao_cliente.py"
